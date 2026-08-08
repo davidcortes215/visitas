@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 11;
+const APP_VERSION = 12;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -547,14 +547,32 @@ function renderAjustes() {
   const k = getKey();
   const st = $('key-state');
   if (!st) return; // HTML antiguo en caché: evitamos romper el resto
+
+  const input = $('key-input');
+  const guardar = $('key-save');
+  const ver = $('key-show');
+
   if (k) {
     st.textContent = `✓ Clave guardada (termina en …${k.slice(-4)})`;
     st.className = 'key-state ok';
     $('key-clear').hidden = false;
+    // Con una clave guardada no hay nada que escribir: se bloquea el campo
+    // para no tocarla sin querer. Para cambiarla, primero hay que borrarla.
+    input.value = '';
+    input.disabled = true;
+    input.type = 'password';
+    input.placeholder = 'Clave configurada · bórrala para cambiarla';
+    guardar.disabled = true;
+    ver.checked = false;
+    ver.disabled = true;
   } else {
     st.textContent = '✗ Sin clave: transcripción y resúmenes desactivados';
     st.className = 'key-state ko';
     $('key-clear').hidden = true;
+    input.disabled = false;
+    input.placeholder = 'gsk_…';
+    guardar.disabled = false;
+    ver.disabled = false;
   }
   const nv = visits.length;
   const nc = clients.length;
@@ -563,62 +581,6 @@ function renderAjustes() {
     `guardados en este móvil.`;
   const vt = $('version-text');
   if (vt) vt.textContent = `Versión ${APP_VERSION}`;
-  renderDiag();
-}
-
-// Diagnóstico de medidas: sirve para ver si la app llega al fondo real de la
-// pantalla o iOS la está recortando por abajo.
-function renderDiag() {
-  const el = $('diag-text');
-  if (!el) return;
-  const sonda = document.createElement('div');
-  sonda.style.cssText =
-    'position:fixed;left:0;bottom:0;width:1px;height:env(safe-area-inset-bottom);';
-  document.body.appendChild(sonda);
-  const reserva = Math.round(sonda.getBoundingClientRect().height);
-  sonda.remove();
-
-  // Cuánto mide cada unidad de viewport en este dispositivo
-  function mide(unidad) {
-    const s = document.createElement('div');
-    s.style.cssText = `position:fixed;top:0;left:0;width:1px;height:100${unidad};`;
-    document.body.appendChild(s);
-    const h = Math.round(s.getBoundingClientRect().height);
-    s.remove();
-    return h;
-  }
-  const unidades = `vh ${mide('vh')}/lvh ${mide('lvh')}/dvh ${mide('dvh')}`;
-  // Desde qué altura de la pantalla empieza la ventana de la app
-  const arranque = Math.round(window.screenY || 0);
-  const app = $('app');
-  const altoApp = app ? Math.round(app.getBoundingClientRect().height) : -1;
-
-  const bar = $('tabbar');
-  const hueco = bar
-    ? Math.round(window.innerHeight - bar.getBoundingClientRect().bottom)
-    : -1;
-  const altoBarra = bar ? Math.round(bar.getBoundingClientRect().height) : -1;
-
-  // Distancia real desde el texto de la etiqueta hasta el fondo de la pantalla:
-  // es el único sitio donde puede quedar espacio si la barra ya toca el borde.
-  let huecoTexto = -1;
-  const btn = bar && bar.querySelector('.tab');
-  if (btn) {
-    const nodoTexto = [...btn.childNodes].find(
-      (n) => n.nodeType === 3 && n.textContent.trim()
-    );
-    if (nodoTexto) {
-      const r = document.createRange();
-      r.selectNode(nodoTexto);
-      huecoTexto = Math.round(window.innerHeight - r.getBoundingClientRect().bottom);
-    }
-  }
-
-  el.textContent =
-    `ventana ${window.innerHeight} · pantalla ${window.screen.height} · ` +
-    `app ${altoApp} · empieza en ${arranque} · ${unidades} · reserva iOS ${reserva} · ` +
-    `barra alto ${altoBarra} · hueco barra ${hueco} · texto al fondo ${huecoTexto} · ` +
-    `standalone ${window.navigator.standalone === true ? 'sí' : 'no'}`;
 }
 
 const EJEMPLOS = [

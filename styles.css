@@ -259,12 +259,15 @@ h2.list-title { font-size: 18px; margin: 22px 0 8px; font-weight: 600; }
   display: flex; align-items: center; gap: 8px;
   color: var(--muted); font-size: 14px; margin: 10px 0 4px;
 }
-.check input { width: 18px; height: 18px; accent-color: var(--primary); }
-.diag {
-  color: var(--muted); font-size: 11.5px; line-height: 1.5;
-  margin: 14px 0 0; opacity: .8;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+/* Campo bloqueado: cuando ya hay una clave guardada */
+#screen-ajustes input:disabled {
+  background: #F7F2E6;
+  color: var(--muted);
+  -webkit-text-fill-color: var(--muted); /* iOS lo aclara demasiado sin esto */
+  opacity: 1;
 }
+.check input { width: 18px; height: 18px; accent-color: var(--primary); }
+.check input:disabled { opacity: .45; }
 .key-state { font-size: 14px; font-weight: 500; margin: 12px 0 0; }
 .key-state.ok { color: var(--success); }
 .key-state.ko { color: var(--primary-ink); }

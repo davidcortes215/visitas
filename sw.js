@@ -1,12 +1,12 @@
 // Service worker: permite abrir la app aunque no haya conexión.
 // Estrategia "red primero": siempre intenta traer la versión actual y, si
 // no hay internet, tira de la copia en caché.
-const CACHE = 'visitas-v11';
+const CACHE = 'visitas-v12';
 const ASSETS = [
   './',
   'index.html',
-  'styles.css?v=11',
-  'app.js?v=11',
+  'styles.css?v=12',
+  'app.js?v=12',
   'manifest.json',
   'icon-180.png',
   'icon-192.png',
