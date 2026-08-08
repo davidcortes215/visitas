@@ -3,7 +3,7 @@
    ============================================================ */
 
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);

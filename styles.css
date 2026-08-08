@@ -251,9 +251,10 @@ h2.list-title { font-size: 18px; margin: 22px 0 8px; font-weight: 600; }
 .tab {
   flex: 1; background: none; border: 0;
   color: var(--muted); font-size: 11px;
-  padding: 7px 0 6px; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  font-family: inherit; line-height: 1.1;
+  /* Apurado al maximo: por debajo de 2px el texto se empieza a cortar. */
+  padding: 6px 0 2px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-family: inherit; line-height: 1.05;
 }
 .tab svg {
   width: 23px; height: 23px;
