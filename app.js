@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 10;
+const APP_VERSION = 11;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -588,6 +588,8 @@ function renderDiag() {
     return h;
   }
   const unidades = `vh ${mide('vh')}/lvh ${mide('lvh')}/dvh ${mide('dvh')}`;
+  // Desde qué altura de la pantalla empieza la ventana de la app
+  const arranque = Math.round(window.screenY || 0);
   const app = $('app');
   const altoApp = app ? Math.round(app.getBoundingClientRect().height) : -1;
 
@@ -614,7 +616,7 @@ function renderDiag() {
 
   el.textContent =
     `ventana ${window.innerHeight} · pantalla ${window.screen.height} · ` +
-    `app ${altoApp} · ${unidades} · reserva iOS ${reserva} · ` +
+    `app ${altoApp} · empieza en ${arranque} · ${unidades} · reserva iOS ${reserva} · ` +
     `barra alto ${altoBarra} · hueco barra ${hueco} · texto al fondo ${huecoTexto} · ` +
     `standalone ${window.navigator.standalone === true ? 'sí' : 'no'}`;
 }

@@ -34,13 +34,12 @@ html, body {
 /* Fijado a los cuatro bordes: con viewport-fit=cover esto garantiza que la
    app cubre TODA la pantalla, incluida la franja de la rayita de inicio.
    Con height:100% iOS podia dejarla corta por abajo. */
+/* Ocupa exactamente la ventana visible. Se probó 100lvh (pantalla completa)
+   pero en iOS empuja la barra fuera de la pantalla: los px que faltan hasta
+   screen.height están ARRIBA (franja de la barra de estado), no abajo. */
 #app {
   position: fixed;
-  top: 0; right: 0; left: 0;
-  /* 'lvh' es el viewport GRANDE: la pantalla entera. Con bottom:0 o height:100%
-     iOS nos daba solo la ventana (797 de 844) y la barra no podia bajar mas. */
-  height: 100vh;
-  height: 100lvh;
+  top: 0; right: 0; bottom: 0; left: 0;
   display: flex;
   flex-direction: column;
   padding-top: env(safe-area-inset-top);
@@ -288,8 +287,10 @@ h2.list-title { font-size: 18px; margin: 22px 0 8px; font-weight: 600; }
 .tabbar {
   display: flex;
   border-top: 1px solid var(--border);
-  /* Blanca sobre el fondo crema: si quedara hueco por debajo, se veria. */
-  background: var(--surface);
+  /* Del color del fondo, no blanca: iOS reserva una franja bajo la ventana que
+     la app no puede pintar. Con el mismo crema se funde y la barra parece
+     llegar al borde; en blanco se recortaba y delataba la franja. */
+  background: var(--bg);
   padding-bottom: 0;
   flex-shrink: 0;
 }
