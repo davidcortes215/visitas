@@ -3,7 +3,9 @@
    ============================================================ */
 
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
-const APP_VERSION = 6;
+// OJO: al subir este número hay que subir también el ?v= de index.html
+// (styles.css y app.js) y el CACHE de sw.js.
+const APP_VERSION = 7;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -705,6 +707,8 @@ if (window.visualViewport) {
 const btnUpdate = $('force-update');
 if (btnUpdate) {
   btnUpdate.onclick = async () => {
+    btnUpdate.disabled = true;
+    btnUpdate.textContent = 'Actualizando…';
     try {
       if ('serviceWorker' in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
@@ -714,8 +718,11 @@ if (btnUpdate) {
         const keys = await caches.keys();
         await Promise.all(keys.map((k) => caches.delete(k)));
       }
+      // 'reload' obliga a ir a la red y refresca también la caché del
+      // navegador, que es la que dejaba la app anclada a la versión vieja.
+      await fetch('index.html', { cache: 'reload' });
     } catch (e) {}
-    // El parámetro obliga a saltarse cualquier copia guardada
+    // Dirección única: el documento no puede venir de ninguna copia guardada
     location.replace(location.pathname + '?v=' + Date.now());
   };
 }
