@@ -22,8 +22,12 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* Fijado a los cuatro bordes: con viewport-fit=cover esto garantiza que la
+   app cubre TODA la pantalla, incluida la franja de la rayita de inicio.
+   Con height:100% iOS podia dejarla corta por abajo. */
 #app {
-  height: 100%;
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
   display: flex;
   flex-direction: column;
   padding-top: env(safe-area-inset-top);
@@ -221,6 +225,11 @@ h2.list-title { font-size: 18px; margin: 22px 0 8px; font-weight: 600; }
   color: var(--muted); font-size: 14px; margin: 10px 0 4px;
 }
 .check input { width: 18px; height: 18px; accent-color: var(--green); }
+.diag {
+  color: var(--muted); font-size: 11.5px; line-height: 1.5;
+  margin: 14px 0 0; opacity: .75;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
 .key-state { font-size: 14px; margin: 12px 0 0; }
 .key-state.ok { color: var(--green); }
 .key-state.ko { color: var(--amber); }

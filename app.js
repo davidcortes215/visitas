@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 7;
+const APP_VERSION = 8;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -563,6 +563,32 @@ function renderAjustes() {
     `guardados en este móvil.`;
   const vt = $('version-text');
   if (vt) vt.textContent = `Versión ${APP_VERSION}`;
+  renderDiag();
+}
+
+// Diagnóstico de medidas: sirve para ver si la app llega al fondo real de la
+// pantalla o iOS la está recortando por abajo.
+function renderDiag() {
+  const el = $('diag-text');
+  if (!el) return;
+  const sonda = document.createElement('div');
+  sonda.style.cssText =
+    'position:fixed;left:0;bottom:0;width:1px;height:env(safe-area-inset-bottom);';
+  document.body.appendChild(sonda);
+  const reserva = Math.round(sonda.getBoundingClientRect().height);
+  sonda.remove();
+
+  const bar = $('tabbar');
+  const hueco = bar
+    ? Math.round(window.innerHeight - bar.getBoundingClientRect().bottom)
+    : -1;
+
+  el.textContent =
+    `ventana ${window.innerHeight} · pantalla ${window.screen.height} · ` +
+    `dpr ${window.devicePixelRatio} · reserva iOS ${reserva} · ` +
+    `hueco bajo barra ${hueco} · standalone ${
+      window.navigator.standalone === true ? 'sí' : 'no'
+    }`;
 }
 
 const EJEMPLOS = [
