@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Visitas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- Para que al añadir a pantalla de inicio se abra como app -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Visitas">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ======================= GRABAR ======================= -->
+  <section class="screen" id="screen-grabar">
+    <h1>Nueva visita</h1>
+    <p class="sub">Graba el resumen al salir de la reunión</p>
+
+    <button class="warn-bar" id="no-key-bar" hidden>
+      Falta tu clave para activar la IA · Ir a Ajustes
+    </button>
+
+    <div class="timer" id="timer">00:00</div>
+
+    <button class="record-btn" id="record-btn" aria-label="Grabar">
+      <span class="record-icon" id="record-icon"></span>
+    </button>
+    <p class="hint" id="record-hint">Toca el círculo</p>
+
+    <h2 class="list-title">Últimas visitas</h2>
+    <div class="list" id="recent-list"></div>
+  </section>
+
+  <!-- ======================= CLIENTES ======================= -->
+  <section class="screen" id="screen-clientes" hidden>
+    <h1>Clientes</h1>
+    <p class="sub" id="clientes-count">0 clientes</p>
+    <div class="list" id="clients-list"></div>
+  </section>
+
+  <!-- ======================= PREGUNTAR ======================= -->
+  <section class="screen chat-screen" id="screen-preguntar" hidden>
+    <h1>Preguntar</h1>
+    <p class="sub">Consulta tus visitas en lenguaje natural</p>
+
+    <div class="chat-log" id="chat-log"></div>
+
+    <div class="input-bar">
+      <input id="chat-input" type="text" placeholder="Escribe tu pregunta…"
+             autocomplete="off" enterkeyhint="send">
+      <button id="chat-send" class="send-btn" aria-label="Enviar">➤</button>
+    </div>
+  </section>
+
+  <!-- ======================= AJUSTES ======================= -->
+  <section class="screen scroll" id="screen-ajustes" hidden>
+    <h1>Ajustes</h1>
+    <p class="sub">Tu clave se guarda solo en este móvil</p>
+
+    <div class="section">
+      <h3>Clave de Groq</h3>
+      <p class="help">
+        Necesaria para transcribir y resumir. Se guarda únicamente en este
+        dispositivo: no viaja a ningún servidor nuestro ni está dentro de la app.
+      </p>
+      <input id="key-input" type="password" placeholder="gsk_…" autocomplete="off"
+             autocapitalize="off" autocorrect="off" spellcheck="false">
+      <label class="check">
+        <input type="checkbox" id="key-show"> Ver la clave
+      </label>
+      <button class="primary" id="key-save">Guardar clave</button>
+      <p class="key-state" id="key-state"></p>
+      <button class="link-red" id="key-clear" hidden>Borrar clave de este móvil</button>
+    </div>
+
+    <div class="section">
+      <h3>¿De dónde saco la clave?</h3>
+      <p class="help">
+        Entra en <strong>console.groq.com</strong>, apartado <strong>API Keys</strong>,
+        y crea una. Es gratuita y no pide tarjeta. Empieza por <code>gsk_</code>.
+      </p>
+    </div>
+
+    <div class="section">
+      <h3>Tus datos</h3>
+      <p class="help" id="stats-text"></p>
+    </div>
+  </section>
+
+  <!-- ======================= DETALLE CLIENTE ======================= -->
+  <section class="screen" id="screen-cliente" hidden>
+    <button class="back" data-back="clientes">‹ Clientes</button>
+    <h1 id="cliente-nombre"></h1>
+    <p class="sub" id="cliente-empresa"></p>
+    <h2 class="list-title" id="cliente-visitas-title">Visitas</h2>
+    <div class="list" id="cliente-visitas"></div>
+  </section>
+
+  <!-- ======================= DETALLE VISITA ======================= -->
+  <section class="screen scroll" id="screen-visita" hidden>
+    <button class="back" id="visita-back">‹ Atrás</button>
+    <h1 id="visita-cliente"></h1>
+    <p class="sub" id="visita-fecha"></p>
+    <div id="visita-body"></div>
+  </section>
+
+  <!-- ======================= TAB BAR ======================= -->
+  <nav class="tabbar" id="tabbar">
+    <button class="tab active" data-tab="grabar"><span>●</span>Grabar</button>
+    <button class="tab" data-tab="clientes"><span>≣</span>Clientes</button>
+    <button class="tab" data-tab="preguntar"><span>✦</span>Preguntar</button>
+    <button class="tab" data-tab="ajustes"><span>⚙</span>Ajustes</button>
+  </nav>
+</div>
+
+<!-- ======================= MODAL ASIGNAR ======================= -->
+<div class="overlay" id="assign-overlay" hidden>
+  <div class="sheet">
+    <div class="handle"></div>
+    <h2>¿De qué cliente es esta visita?</h2>
+    <p class="sub" id="assign-sub"></p>
+
+    <!-- Modo: elegir de la lista -->
+    <div id="assign-pick">
+      <input id="assign-search" type="text" placeholder="Buscar cliente…" autocomplete="off">
+      <button class="link-green" id="assign-new-btn">+ Nuevo cliente</button>
+      <div class="list" id="assign-list"></div>
+    </div>
+
+    <!-- Modo: crear nuevo -->
+    <div id="assign-create" hidden>
+      <input id="new-nombre" type="text" placeholder="Nombre del cliente" autocomplete="off">
+      <input id="new-empresa" type="text" placeholder="Empresa (opcional)" autocomplete="off">
+      <button class="primary" id="assign-create-btn" disabled>Crear y guardar</button>
+      <button class="link-blue" id="assign-back-btn" hidden>‹ Elegir de la lista</button>
+    </div>
+
+    <button class="discard" id="assign-discard">Descartar grabación</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
