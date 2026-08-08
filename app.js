@@ -2,6 +2,9 @@
    Visitas — CRM de voz (versión web / PWA)
    ============================================================ */
 
+// Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
+const APP_VERSION = 3;
+
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
 
@@ -541,6 +544,7 @@ function renderVisitDetail() {
 function renderAjustes() {
   const k = getKey();
   const st = $('key-state');
+  if (!st) return; // HTML antiguo en caché: evitamos romper el resto
   if (k) {
     st.textContent = `✓ Clave guardada (termina en …${k.slice(-4)})`;
     st.className = 'key-state ok';
@@ -555,6 +559,8 @@ function renderAjustes() {
   $('stats-text').textContent =
     `${nc} ${nc === 1 ? 'cliente' : 'clientes'} y ${nv} ${nv === 1 ? 'visita' : 'visitas'} ` +
     `guardados en este móvil.`;
+  const vt = $('version-text');
+  if (vt) vt.textContent = `Versión ${APP_VERSION}`;
 }
 
 const EJEMPLOS = [
@@ -693,10 +699,34 @@ if (window.visualViewport) {
   vv.addEventListener('scroll', adjust);
 }
 
+// Botón "Buscar actualización": borra lo guardado y recarga desde el servidor.
+// Se comprueba que exista por si el móvil tuviera cacheado un HTML antiguo:
+// un fallo aquí dejaría sin ejecutar todo lo que viene después.
+const btnUpdate = $('force-update');
+if (btnUpdate) {
+  btnUpdate.onclick = async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+      if (window.caches) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch (e) {}
+    // El parámetro obliga a saltarse cualquier copia guardada
+    location.replace(location.pathname + '?v=' + Date.now());
+  };
+}
+
 // Service worker (permite abrirla sin conexión una vez cargada)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker
+      .register('sw.js', { updateViaCache: 'none' })
+      .then((reg) => reg.update())
+      .catch(() => {});
   });
 }
 
