@@ -36,7 +36,11 @@ html, body {
    Con height:100% iOS podia dejarla corta por abajo. */
 #app {
   position: fixed;
-  top: 0; right: 0; bottom: 0; left: 0;
+  top: 0; right: 0; left: 0;
+  /* 'lvh' es el viewport GRANDE: la pantalla entera. Con bottom:0 o height:100%
+     iOS nos daba solo la ventana (797 de 844) y la barra no podia bajar mas. */
+  height: 100vh;
+  height: 100lvh;
   display: flex;
   flex-direction: column;
   padding-top: env(safe-area-inset-top);

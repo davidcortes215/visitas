@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -578,6 +578,19 @@ function renderDiag() {
   const reserva = Math.round(sonda.getBoundingClientRect().height);
   sonda.remove();
 
+  // Cuánto mide cada unidad de viewport en este dispositivo
+  function mide(unidad) {
+    const s = document.createElement('div');
+    s.style.cssText = `position:fixed;top:0;left:0;width:1px;height:100${unidad};`;
+    document.body.appendChild(s);
+    const h = Math.round(s.getBoundingClientRect().height);
+    s.remove();
+    return h;
+  }
+  const unidades = `vh ${mide('vh')}/lvh ${mide('lvh')}/dvh ${mide('dvh')}`;
+  const app = $('app');
+  const altoApp = app ? Math.round(app.getBoundingClientRect().height) : -1;
+
   const bar = $('tabbar');
   const hueco = bar
     ? Math.round(window.innerHeight - bar.getBoundingClientRect().bottom)
@@ -601,7 +614,7 @@ function renderDiag() {
 
   el.textContent =
     `ventana ${window.innerHeight} · pantalla ${window.screen.height} · ` +
-    `dpr ${window.devicePixelRatio} · reserva iOS ${reserva} · ` +
+    `app ${altoApp} · ${unidades} · reserva iOS ${reserva} · ` +
     `barra alto ${altoBarra} · hueco barra ${hueco} · texto al fondo ${huecoTexto} · ` +
     `standalone ${window.navigator.standalone === true ? 'sí' : 'no'}`;
 }
