@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 8;
+const APP_VERSION = 9;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -582,13 +582,28 @@ function renderDiag() {
   const hueco = bar
     ? Math.round(window.innerHeight - bar.getBoundingClientRect().bottom)
     : -1;
+  const altoBarra = bar ? Math.round(bar.getBoundingClientRect().height) : -1;
+
+  // Distancia real desde el texto de la etiqueta hasta el fondo de la pantalla:
+  // es el único sitio donde puede quedar espacio si la barra ya toca el borde.
+  let huecoTexto = -1;
+  const btn = bar && bar.querySelector('.tab');
+  if (btn) {
+    const nodoTexto = [...btn.childNodes].find(
+      (n) => n.nodeType === 3 && n.textContent.trim()
+    );
+    if (nodoTexto) {
+      const r = document.createRange();
+      r.selectNode(nodoTexto);
+      huecoTexto = Math.round(window.innerHeight - r.getBoundingClientRect().bottom);
+    }
+  }
 
   el.textContent =
     `ventana ${window.innerHeight} · pantalla ${window.screen.height} · ` +
     `dpr ${window.devicePixelRatio} · reserva iOS ${reserva} · ` +
-    `hueco bajo barra ${hueco} · standalone ${
-      window.navigator.standalone === true ? 'sí' : 'no'
-    }`;
+    `barra alto ${altoBarra} · hueco barra ${hueco} · texto al fondo ${huecoTexto} · ` +
+    `standalone ${window.navigator.standalone === true ? 'sí' : 'no'}`;
 }
 
 const EJEMPLOS = [
