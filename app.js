@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -95,6 +95,9 @@ let openClientId = null;
 let openVisitId = null;
 let chatMessages = [];
 let chatLoading = false;
+
+// Marca de tiempo: al fusionar con la nube gana la versión más reciente
+const ahora = () => new Date().toISOString();
 
 function persistClients() { saveJSON(LS_CLIENTS, clients); }
 function persistVisits() { saveJSON(LS_VISITS, visits); }
@@ -326,9 +329,11 @@ async function procesarVisita(id) {
 }
 
 function updateVisit(id, patch) {
-  visits = visits.map((v) => (v.id === id ? { ...v, ...patch } : v));
+  visits = visits.map((v) =>
+    (v.id === id ? { ...v, ...patch, actualizadoEn: ahora() } : v));
   persistVisits();
   render();
+  sincronizarSuave();
 }
 
 async function eliminarVisita(id) {
@@ -337,6 +342,41 @@ async function eliminarVisita(id) {
   visits = visits.filter((v) => v.id !== id);
   persistVisits();
   openVisitId = null;
+  render();
+  Nube.borrar('visitas', id);
+}
+
+// ---------------- Sincronización con la nube ----------------
+let sincronizando = false;
+let ultimaSync = null;
+let avisoSync = '';
+let temporizadorSync = null;
+
+// Sincroniza sin molestar: si no hay cuenta o falla la red, no pasa nada.
+// Se agrupa con un pequeño retardo para no llamar en cada tecla.
+function sincronizarSuave() {
+  if (!Nube.configurada() || !Nube.sesion()) return;
+  clearTimeout(temporizadorSync);
+  temporizadorSync = setTimeout(() => sincronizar(false), 1500);
+}
+
+async function sincronizar(mostrarErrores) {
+  if (sincronizando || !Nube.configurada() || !Nube.sesion()) return;
+  sincronizando = true;
+  avisoSync = '';
+  renderAjustes();
+  const r = await Nube.sincronizar(clients, visits);
+  if (r.ok) {
+    clients = r.clientes;
+    visits = r.visitas;
+    persistClients();
+    persistVisits();
+    ultimaSync = new Date();
+    avisoSync = '';
+  } else if (r.motivo === 'error') {
+    avisoSync = mostrarErrores ? r.error : 'Sin conexión: se guardó en el móvil.';
+  }
+  sincronizando = false;
   render();
 }
 
@@ -381,6 +421,7 @@ function asignarVisita(clientId) {
     transcripcion: '', resumen: '',
     puntosClave: [], proximosPasos: [],
     fechaSeguimiento: null, errorMsg: '',
+    actualizadoEn: ahora(),
   }, ...visits];
   persistVisits();
   const id = pending.id;
@@ -427,8 +468,10 @@ function render() {
   $('screen-ajustes').hidden = showVisit || showClient || tab !== 'ajustes';
   $('tabbar').hidden = showVisit || showClient;
 
-  // Aviso si aún no hay clave configurada
+  // Avisos: falta la clave de IA / los datos no están en la nube
   $('no-key-bar').hidden = !!getKey();
+  const sinNube = Nube.configurada() && !Nube.sesion();
+  $('no-cloud-bar').hidden = !sinNube;
   renderAjustes();
 
   document.querySelectorAll('.tab').forEach((b) =>
@@ -581,6 +624,35 @@ function renderAjustes() {
     `guardados en este móvil.`;
   const vt = $('version-text');
   if (vt) vt.textContent = `Versión ${APP_VERSION}`;
+  renderCuenta();
+}
+
+// Estado de la cuenta y de la copia en la nube
+function renderCuenta() {
+  const fuera = $('cuenta-fuera');
+  const dentro = $('cuenta-dentro');
+  if (!fuera || !dentro) return;
+
+  const u = Nube.usuario();
+  fuera.hidden = !!u;
+  dentro.hidden = !u;
+
+  if (u) {
+    $('cuenta-quien').textContent = `✓ Copia activa · ${u.email}`;
+    const btn = $('cuenta-sync');
+    btn.disabled = sincronizando;
+    btn.textContent = sincronizando ? 'Sincronizando…' : 'Sincronizar ahora';
+    if (avisoSync) {
+      $('cuenta-estado').textContent = `⚠️ ${avisoSync}`;
+    } else if (ultimaSync) {
+      $('cuenta-estado').textContent =
+        'Última sincronización: ' +
+        ultimaSync.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    } else {
+      $('cuenta-estado').textContent =
+        'Tus clientes y visitas se guardan también en la nube. Los audios se quedan en este móvil.';
+    }
+  }
 }
 
 const EJEMPLOS = [
@@ -666,12 +738,79 @@ $('new-nombre').oninput = () => {
 $('assign-create-btn').onclick = () => {
   const nombre = $('new-nombre').value.trim();
   if (!nombre) return;
-  const nuevo = { id: 'c' + Date.now(), nombre, empresa: $('new-empresa').value.trim() };
+  const nuevo = {
+    id: 'c' + Date.now(), nombre,
+    empresa: $('new-empresa').value.trim(),
+    actualizadoEn: ahora(),
+  };
   clients = [nuevo, ...clients];
   persistClients();
   asignarVisita(nuevo.id);
 };
 $('assign-discard').onclick = descartarPending;
+
+// ---------------- Cuenta ----------------
+$('no-cloud-bar').onclick = () => { tab = 'ajustes'; render(); };
+
+function datosCuenta() {
+  const email = $('cuenta-email').value.trim();
+  const pass = $('cuenta-pass').value;
+  if (!email || !pass) {
+    $('cuenta-msg').textContent = 'Escribe tu correo y tu contraseña.';
+    $('cuenta-msg').className = 'key-state ko';
+    return null;
+  }
+  return { email, pass };
+}
+
+async function accionCuenta(boton, accion) {
+  const d = datosCuenta();
+  if (!d) return;
+  const textoOriginal = boton.textContent;
+  boton.disabled = true;
+  boton.textContent = 'Un momento…';
+  $('cuenta-msg').textContent = '';
+  try {
+    const aviso = await accion(d.email, d.pass);
+    $('cuenta-pass').value = '';
+    if (aviso) {
+      $('cuenta-msg').textContent = aviso;
+      $('cuenta-msg').className = 'key-state ko';
+    } else {
+      $('cuenta-email').value = '';
+      render();
+      await sincronizar(true);
+    }
+  } catch (e) {
+    $('cuenta-msg').textContent = String(e.message || e);
+    $('cuenta-msg').className = 'key-state ko';
+  } finally {
+    boton.disabled = false;
+    boton.textContent = textoOriginal;
+  }
+}
+
+$('cuenta-entrar').onclick = (e) =>
+  accionCuenta(e.target, async (email, pass) => {
+    await Nube.entrar(email, pass);
+    return null;
+  });
+
+$('cuenta-registrar').onclick = (e) =>
+  accionCuenta(e.target, async (email, pass) => {
+    const r = await Nube.registrarse(email, pass);
+    return r.entrado ? null : r.aviso;
+  });
+
+$('cuenta-sync').onclick = () => sincronizar(true);
+
+$('cuenta-salir').onclick = () => {
+  if (!confirm('¿Cerrar sesión? Tus datos siguen en este móvil y en la nube.')) return;
+  Nube.salir();
+  ultimaSync = null;
+  avisoSync = '';
+  render();
+};
 
 // Ajustes
 $('no-key-bar').onclick = () => { tab = 'ajustes'; render(); };
@@ -756,3 +895,7 @@ if ('serviceWorker' in navigator) {
 }
 
 render();
+
+// Al abrir la app, si hay cuenta, se trae y se sube lo que haya cambiado.
+// Sin cobertura no pasa nada: se trabaja en local y ya sincronizará después.
+sincronizar(false);

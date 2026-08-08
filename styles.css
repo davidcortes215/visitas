@@ -285,6 +285,17 @@ h2.list-title { font-size: 18px; margin: 22px 0 8px; font-weight: 600; }
   font-family: inherit;
 }
 .warn-bar[hidden] { display: none; }
+/* Aviso informativo, menos urgente que el de la clave */
+.warn-bar.soft {
+  background: var(--surface); border-color: var(--border);
+  color: var(--muted); font-weight: 500;
+}
+#cuenta-fuera input, #cuenta-dentro input {
+  width: 100%; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 10px;
+  color: var(--text); font-size: 16px;
+}
 
 /* ---------- Tab bar ---------- */
 .tabbar {

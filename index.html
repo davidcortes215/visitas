@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.json">
   <!-- El ?v= cambia en cada version: obliga al navegador a bajar el archivo
        nuevo en vez de servir su copia guardada. Subirlo junto a APP_VERSION. -->
-  <link rel="stylesheet" href="styles.css?v=12">
+  <link rel="stylesheet" href="styles.css?v=13">
 </head>
 <body>
 
@@ -28,6 +28,9 @@
 
     <button class="warn-bar" id="no-key-bar" hidden>
       Falta tu clave para activar la IA · Ir a Ajustes
+    </button>
+    <button class="warn-bar soft" id="no-cloud-bar" hidden>
+      Tus datos están solo en este móvil · Activar copia en la nube
     </button>
 
     <div class="timer" id="timer">00:00</div>
@@ -65,7 +68,36 @@
   <!-- ======================= AJUSTES ======================= -->
   <section class="screen scroll" id="screen-ajustes" hidden>
     <h1>Ajustes</h1>
-    <p class="sub">Tu clave se guarda solo en este móvil</p>
+    <p class="sub">Cuenta, clave y copia en la nube</p>
+
+    <!-- ---------- Cuenta / nube ---------- -->
+    <div class="section">
+      <h3>Copia en la nube</h3>
+
+      <!-- Sin sesión -->
+      <div id="cuenta-fuera">
+        <p class="help">
+          Tus clientes y visitas están solo en este móvil. Con una cuenta se
+          guardan también en la nube: no los pierdes si cambias de teléfono.
+          Los audios se quedan siempre aquí.
+        </p>
+        <input id="cuenta-email" type="email" placeholder="Tu correo"
+               autocomplete="email" autocapitalize="off" autocorrect="off">
+        <input id="cuenta-pass" type="password" placeholder="Contraseña"
+               autocomplete="current-password">
+        <button class="primary" id="cuenta-entrar">Entrar</button>
+        <button class="link-blue" id="cuenta-registrar">No tengo cuenta: crear una</button>
+        <p class="key-state" id="cuenta-msg"></p>
+      </div>
+
+      <!-- Con sesión -->
+      <div id="cuenta-dentro" hidden>
+        <p class="key-state ok" id="cuenta-quien"></p>
+        <p class="help" id="cuenta-estado"></p>
+        <button class="primary" id="cuenta-sync">Sincronizar ahora</button>
+        <button class="link-red" id="cuenta-salir">Cerrar sesión en este móvil</button>
+      </div>
+    </div>
 
     <div class="section">
       <h3>Clave de Groq</h3>
@@ -187,6 +219,8 @@
   </div>
 </div>
 
-<script src="app.js?v=12"></script>
+<script src="supabase-config.js?v=13"></script>
+<script src="nube.js?v=13"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>
