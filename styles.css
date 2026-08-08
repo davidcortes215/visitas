@@ -242,9 +242,9 @@ h2.list-title { font-size: 18px; margin: 22px 0 8px; font-weight: 600; }
   display: flex;
   border-top: 1px solid var(--line);
   background: var(--bg);
-  /* iOS reserva ~34pt para la rayita de inicio. Recortamos 22 para que la
-     barra baje, dejando holgura suficiente para no pisar el gesto. */
-  padding-bottom: max(6px, calc(env(safe-area-inset-bottom) - 22px));
+  /* Sin reserva para la rayita de inicio: David la quiere pegada abajo del
+     todo y ha confirmado que el gesto de iOS sigue funcionando igual. */
+  padding-bottom: 0;
   flex-shrink: 0;
 }
 .tabbar[hidden] { display: none; }
