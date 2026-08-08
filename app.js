@@ -682,8 +682,11 @@ if (window.visualViewport) {
   const vv = window.visualViewport;
   const adjust = () => {
     const overlap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    document.getElementById('app').style.paddingBottom = overlap + 'px';
-    if (overlap > 0) $('tabbar').hidden = true;
+    // Solo es teclado si el hueco es grande. Diferencias pequeñas vienen del
+    // área segura del iPhone y no deben mover la interfaz.
+    const teclado = overlap > 120 ? overlap : 0;
+    document.getElementById('app').style.paddingBottom = teclado + 'px';
+    if (teclado > 0) $('tabbar').hidden = true;
     else if (!openVisitId && !openClientId) $('tabbar').hidden = false;
   };
   vv.addEventListener('resize', adjust);
