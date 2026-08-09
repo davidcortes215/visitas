@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.json">
   <!-- El ?v= cambia en cada version: obliga al navegador a bajar el archivo
        nuevo en vez de servir su copia guardada. Subirlo junto a APP_VERSION. -->
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
 
@@ -42,6 +42,13 @@
 
     <h2 class="list-title">Últimas visitas</h2>
     <div class="list" id="recent-list"></div>
+  </section>
+
+  <!-- ======================= PENDIENTES ======================= -->
+  <section class="screen" id="screen-pendientes" hidden>
+    <h1>Pendientes</h1>
+    <p class="sub" id="pendientes-sub"></p>
+    <div class="list" id="pendientes-list"></div>
   </section>
 
   <!-- ======================= CLIENTES ======================= -->
@@ -166,6 +173,14 @@
       </svg>
       Grabar
     </button>
+    <button class="tab" data-tab="pendientes">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18.5 9a6.5 6.5 0 0 0-13 0c0 7-3 8.5-3 8.5h19s-3-1.5-3-8.5"></path>
+        <path d="M13.8 21a2.1 2.1 0 0 1-3.6 0"></path>
+      </svg>
+      Pendientes
+      <span class="tab-pill" id="tab-pendientes-pill" hidden></span>
+    </button>
     <button class="tab" data-tab="clientes">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="9" cy="7.5" r="3.6"></circle>
@@ -219,8 +234,8 @@
   </div>
 </div>
 
-<script src="supabase-config.js?v=13"></script>
-<script src="nube.js?v=13"></script>
-<script src="app.js?v=13"></script>
+<script src="supabase-config.js?v=14"></script>
+<script src="nube.js?v=14"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>

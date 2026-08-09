@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 13;
+const APP_VERSION = 14;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -464,9 +464,19 @@ function render() {
   $('screen-cliente').hidden = !showClient;
   $('screen-grabar').hidden = showVisit || showClient || tab !== 'grabar';
   $('screen-clientes').hidden = showVisit || showClient || tab !== 'clientes';
+  $('screen-pendientes').hidden = showVisit || showClient || tab !== 'pendientes';
   $('screen-preguntar').hidden = showVisit || showClient || tab !== 'preguntar';
   $('screen-ajustes').hidden = showVisit || showClient || tab !== 'ajustes';
   $('tabbar').hidden = showVisit || showClient;
+
+  // Contador de lo urgente sobre el icono de Pendientes
+  renderPendientes();
+  const urgentes = cuentaUrgentes();
+  const pill = $('tab-pendientes-pill');
+  if (pill) {
+    pill.hidden = urgentes === 0;
+    pill.textContent = urgentes > 9 ? '9+' : String(urgentes);
+  }
 
   // Avisos: falta la clave de IA / los datos no están en la nube
   $('no-key-bar').hidden = !!getKey();
@@ -655,6 +665,105 @@ function renderCuenta() {
   }
 }
 
+// ---------------- Pendientes ----------------
+// Fecha de hoy en formato YYYY-MM-DD según el reloj del móvil
+function hoyISO(desplazamientoDias = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + desplazamientoDias);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate()
+  ).padStart(2, '0')}`;
+}
+
+// Visitas con seguimiento aún por hacer, repartidas por urgencia
+function agruparPendientes() {
+  const hoy = hoyISO();
+  const enUnaSemana = hoyISO(7);
+  const grupos = { vencidos: [], hoy: [], semana: [], despues: [] };
+
+  visits
+    .filter((v) => v.fechaSeguimiento && !v.seguimientoHecho)
+    .sort((a, b) => a.fechaSeguimiento.localeCompare(b.fechaSeguimiento))
+    .forEach((v) => {
+      const f = v.fechaSeguimiento;
+      if (f < hoy) grupos.vencidos.push(v);
+      else if (f === hoy) grupos.hoy.push(v);
+      else if (f <= enUnaSemana) grupos.semana.push(v);
+      else grupos.despues.push(v);
+    });
+
+  return grupos;
+}
+
+// Lo que reclama atención ya: vencido o para hoy
+function cuentaUrgentes() {
+  const g = agruparPendientes();
+  return g.vencidos.length + g.hoy.length;
+}
+
+function diasDesde(fecha) {
+  const hoy = new Date(hoyISO() + 'T00:00:00');
+  const f = new Date(fecha + 'T00:00:00');
+  return Math.round((f - hoy) / 86400000);
+}
+
+function textoCuando(fecha) {
+  const d = diasDesde(fecha);
+  if (d === 0) return 'Hoy';
+  if (d === 1) return 'Mañana';
+  if (d === -1) return 'Ayer';
+  if (d < 0) return `Hace ${Math.abs(d)} días`;
+  if (d < 7) return `En ${d} días`;
+  return fmtDay(fecha);
+}
+
+function filaPendiente(v) {
+  const pasos = (v.proximosPasos || []).join(' · ');
+  return `
+    <div class="row pend" data-visit="${esc(v.id)}">
+      <div class="info">
+        <div class="name">${esc(clientName(v.clientId))}</div>
+        <div class="cuando">${esc(textoCuando(v.fechaSeguimiento))}</div>
+        ${pasos ? `<div class="meta">${esc(pasos)}</div>` : ''}
+      </div>
+      <button class="hecho-btn" data-hecho="${esc(v.id)}"
+              aria-label="Marcar como hecho">✓</button>
+    </div>`;
+}
+
+function renderPendientes() {
+  const cont = $('pendientes-list');
+  if (!cont) return;
+  const g = agruparPendientes();
+  const total = g.vencidos.length + g.hoy.length + g.semana.length + g.despues.length;
+
+  $('pendientes-sub').textContent = total
+    ? `${total} ${total === 1 ? 'seguimiento por hacer' : 'seguimientos por hacer'}`
+    : 'Todo al día';
+
+  if (!total) {
+    cont.innerHTML =
+      '<p class="empty">No tienes seguimientos pendientes. Aparecerán aquí en cuanto la IA detecte uno en tus notas.</p>';
+    return;
+  }
+
+  const bloque = (titulo, lista, clase = '') =>
+    lista.length
+      ? `<h3 class="grupo ${clase}">${titulo} (${lista.length})</h3>` +
+        lista.map(filaPendiente).join('')
+      : '';
+
+  cont.innerHTML =
+    bloque('Vencidos', g.vencidos, 'urgente') +
+    bloque('Hoy', g.hoy, 'urgente') +
+    bloque('Esta semana', g.semana) +
+    bloque('Más adelante', g.despues);
+}
+
+function marcarSeguimiento(id) {
+  updateVisit(id, { seguimientoHecho: true });
+}
+
 const EJEMPLOS = [
   '¿Cuántas visitas hice este mes?',
   '¿Qué seguimientos tengo pendientes?',
@@ -706,6 +815,14 @@ $('visita-back').onclick = () => { openVisitId = null; render(); };
 
 // Delegación de clics en listas
 document.addEventListener('click', (e) => {
+  // El botón de hecho va antes: está dentro de una fila que abriría la visita
+  const hecho = e.target.closest('[data-hecho]');
+  if (hecho) {
+    e.stopPropagation();
+    marcarSeguimiento(hecho.dataset.hecho);
+    return;
+  }
+
   const visit = e.target.closest('[data-visit]');
   if (visit) { openVisitId = visit.dataset.visit; render(); return; }
 

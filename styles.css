@@ -128,6 +128,37 @@ h2.list-title { font-size: 18px; margin: 22px 0 8px; font-weight: 600; }
 }
 .chev { color: var(--primary); font-size: 22px; }
 
+/* ---------- Pendientes ---------- */
+h3.grupo {
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .5px;
+  margin: 18px 0 8px;
+}
+h3.grupo:first-child { margin-top: 4px; }
+h3.grupo.urgente { color: var(--primary-ink); }
+.row.pend { align-items: flex-start; }
+.row.pend .cuando {
+  color: var(--primary-ink); font-size: 13px; font-weight: 600; margin-top: 2px;
+}
+.row.pend .meta { white-space: normal; margin-top: 4px; }
+.hecho-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--success); font-size: 17px; font-weight: 700;
+  flex-shrink: 0; cursor: pointer; font-family: inherit;
+}
+.hecho-btn:active { background: var(--success); color: #fff; }
+
+/* Contador sobre el icono de la pestaña */
+.tab { position: relative; }
+.tab-pill {
+  position: absolute; top: 2px; left: 50%; margin-left: 6px;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 8px; background: var(--danger); color: #fff;
+  font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+}
+.tab-pill[hidden] { display: none; }
+
 .avatar {
   width: 44px; height: 44px; border-radius: 50%;
   background: var(--primary);

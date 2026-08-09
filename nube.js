@@ -161,6 +161,7 @@ const Nube = (() => {
     puntos_clave: v.puntosClave || [],
     proximos_pasos: v.proximosPasos || [],
     fecha_seguimiento: v.fechaSeguimiento || null,
+    seguimiento_hecho: !!v.seguimientoHecho,
     actualizado_en: v.actualizadoEn || new Date().toISOString(),
   });
   const aLocalVisita = (r) => ({
@@ -173,6 +174,7 @@ const Nube = (() => {
     puntosClave: r.puntos_clave || [],
     proximosPasos: r.proximos_pasos || [],
     fechaSeguimiento: r.fecha_seguimiento || null,
+    seguimientoHecho: !!r.seguimiento_hecho,
     errorMsg: '',
     actualizadoEn: r.actualizado_en,
     // El audio no viaja a la nube: si esta visita viene de otro móvil, no habrá
