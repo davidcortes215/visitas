@@ -1,14 +1,14 @@
 // Service worker: permite abrir la app aunque no haya conexión.
 // Estrategia "red primero": siempre intenta traer la versión actual y, si
 // no hay internet, tira de la copia en caché.
-const CACHE = 'visitas-v15';
+const CACHE = 'visitas-v16';
 const ASSETS = [
   './',
   'index.html',
-  'styles.css?v=15',
-  'app.js?v=15',
-  'nube.js?v=15',
-  'supabase-config.js?v=15',
+  'styles.css?v=16',
+  'app.js?v=16',
+  'nube.js?v=16',
+  'supabase-config.js?v=16',
   'manifest.json',
   'icon-180.png',
   'icon-192.png',

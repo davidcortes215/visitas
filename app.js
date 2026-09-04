@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 15;
+const APP_VERSION = 16;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -122,8 +122,17 @@ function getKey() {
 }
 function requireKey() {
   const k = getKey();
-  if (!k) throw new Error('Falta tu clave de Groq. Ve a Ajustes y pégala para activar la IA.');
+  if (!k) {
+    throw new Error(
+      'Para transcribir hace falta la IA. Entra con tu cuenta en Ajustes y se activa sola.'
+    );
+  }
   return k;
+}
+
+// Con sesión iniciada la IA la hace el servidor: nadie necesita clave propia.
+function iaEnServidor() {
+  return Nube.configurada() && !!Nube.sesion();
 }
 
 function extFor(mime) {
@@ -137,6 +146,17 @@ function extFor(mime) {
 }
 
 async function transcribeAudio(blob) {
+  if (iaEnServidor()) {
+    try {
+      const f = new FormData();
+      f.append('file', blob, `audio.${extFor(blob.type)}`);
+      const d = await Nube.funcionIA('transcribir', { formulario: f });
+      return (d.text || '').trim();
+    } catch (e) {
+      // Si el servidor aún no está listo, se intenta con la clave propia
+      if (!getKey()) throw e;
+    }
+  }
   const key = requireKey();
   const form = new FormData();
   form.append('file', blob, `audio.${extFor(blob.type)}`);
@@ -154,7 +174,27 @@ async function transcribeAudio(blob) {
   return (data.text || '').trim();
 }
 
+function leerEstructura(data) {
+  const p = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+  return {
+    resumen: p.resumen || '',
+    puntosClave: Array.isArray(p.puntosClave) ? p.puntosClave : [],
+    proximosPasos: Array.isArray(p.proximosPasos) ? p.proximosPasos : [],
+    fechaSeguimiento: p.fechaSeguimiento || null,
+  };
+}
+
 async function structureSummary(transcript, hoy) {
+  if (iaEnServidor()) {
+    try {
+      const d = await Nube.funcionIA('resumir', {
+        cuerpo: { transcripcion: transcript, hoy },
+      });
+      return leerEstructura(d);
+    } catch (e) {
+      if (!getKey()) throw e;
+    }
+  }
   const key = requireKey();
   const system =
     'Eres un asistente que organiza notas de visitas comerciales. A partir de la ' +
@@ -191,14 +231,7 @@ async function structureSummary(transcript, hoy) {
     }),
   });
   if (!res.ok) throw new Error(`Resumen falló (${res.status}): ${await res.text()}`);
-  const data = await res.json();
-  const p = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-  return {
-    resumen: p.resumen || '',
-    puntosClave: Array.isArray(p.puntosClave) ? p.puntosClave : [],
-    proximosPasos: Array.isArray(p.proximosPasos) ? p.proximosPasos : [],
-    fechaSeguimiento: p.fechaSeguimiento || null,
-  };
+  return leerEstructura(await res.json());
 }
 
 function buildContext() {
@@ -220,8 +253,19 @@ function buildContext() {
 }
 
 async function askAboutData(historial) {
+  const hoyIso = new Date().toISOString().slice(0, 10);
+  if (iaEnServidor()) {
+    try {
+      const d = await Nube.funcionIA('preguntar', {
+        cuerpo: { contexto: buildContext(), historial, hoy: hoyIso },
+      });
+      return (d.choices?.[0]?.message?.content || '').trim();
+    } catch (e) {
+      if (!getKey()) throw e;
+    }
+  }
   const key = requireKey();
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyIso;
   const system =
     'Eres el asistente personal de una comercial. Respondes preguntas sobre sus ' +
     'visitas y clientes usando EXCLUSIVAMENTE los datos de abajo. Si un dato no ' +
@@ -497,8 +541,9 @@ function render() {
     pill.textContent = urgentes > 9 ? '9+' : String(urgentes);
   }
 
-  // Avisos: falta la clave de IA / los datos no están en la nube
-  $('no-key-bar').hidden = !!getKey();
+  // Avisos: falta la IA / los datos no están en la nube.
+  // Con sesión la IA va por el servidor, así que no se pide clave ninguna.
+  $('no-key-bar').hidden = !!getKey() || iaEnServidor();
   const sinNube = Nube.configurada() && !Nube.sesion();
   $('no-cloud-bar').hidden = !sinNube;
   renderAjustes();
@@ -636,6 +681,13 @@ function renderAjustes() {
   const guardar = $('key-save');
   const ver = $('key-show');
 
+  const ayuda = $('key-ayuda');
+  if (ayuda) {
+    ayuda.textContent = iaEnServidor()
+      ? 'No te hace falta: con tu cuenta iniciada, la transcripción y los resúmenes ya funcionan. Esto es solo por si prefieres usar tu propia clave.'
+      : 'Solo si no quieres usar cuenta. Lo normal es entrar arriba y despreocuparte. Si la pones, se guarda únicamente en este móvil.';
+  }
+
   if (k) {
     st.textContent = `✓ Clave guardada (termina en …${k.slice(-4)})`;
     st.className = 'key-state ok';
@@ -650,8 +702,10 @@ function renderAjustes() {
     ver.checked = false;
     ver.disabled = true;
   } else {
-    st.textContent = '✗ Sin clave: transcripción y resúmenes desactivados';
-    st.className = 'key-state ko';
+    st.textContent = iaEnServidor()
+      ? '✓ IA activa a través de tu cuenta'
+      : '✗ Sin cuenta ni clave: transcripción y resúmenes desactivados';
+    st.className = iaEnServidor() ? 'key-state ok' : 'key-state ko';
     $('key-clear').hidden = true;
     input.disabled = false;
     input.placeholder = 'gsk_…';

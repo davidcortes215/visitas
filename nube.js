@@ -111,6 +111,27 @@ const Nube = (() => {
     guardarSesion(null);
   }
 
+  // ---------------- IA en el servidor ----------------
+  // Llama a la función 'ia' de Supabase, que es quien guarda la clave de Groq.
+  // Así el usuario no tiene que configurar ninguna clave en su móvil.
+  async function funcionIA(accion, { cuerpo, formulario } = {}) {
+    const token = await renovarSiHaceFalta();
+    const opciones = {
+      method: 'POST',
+      headers: { apikey: CLAVE(), Authorization: `Bearer ${token}` },
+    };
+    if (formulario) {
+      opciones.body = formulario;
+    } else {
+      opciones.headers['Content-Type'] = 'application/json';
+      opciones.body = JSON.stringify(cuerpo || {});
+    }
+    const res = await fetch(`${URL_BASE()}/functions/v1/ia?accion=${accion}`, opciones);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `El servidor de IA respondió ${res.status}`);
+    return data;
+  }
+
   // ---------------- Borrados pendientes ----------------
   // Si se borra algo sin cobertura, se apunta para borrarlo en la nube después.
   function borrados() {
@@ -263,6 +284,6 @@ const Nube = (() => {
   return {
     configurada, sesion, usuario,
     registrarse, entrar, salir,
-    sincronizar, borrar,
+    sincronizar, borrar, funcionIA,
   };
 })();
