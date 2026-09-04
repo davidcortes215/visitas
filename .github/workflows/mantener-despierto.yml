@@ -1,0 +1,36 @@
+# Mantiene despierto el proyecto de Supabase.
+#
+# El plan gratuito suspende los proyectos tras unos dias sin actividad, y eso
+# dejaria a la app sin sincronizacion y sin IA. Una consulta diaria basta para
+# que Supabase lo considere activo.
+#
+# La URL y la clave que aparecen aqui son publicas a proposito (ya viajan
+# dentro de la app): lo que protege los datos son las reglas RLS de la base.
+
+name: Mantener Supabase despierto
+
+on:
+  schedule:
+    # Todos los dias a las 06:00 UTC
+    - cron: '0 6 * * *'
+  # Permite lanzarlo a mano desde la pestana Actions
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar la base de datos
+        env:
+          SUPABASE_URL: https://ufhtcbfrjbjsbzzkbypb.supabase.co
+          SUPABASE_KEY: sb_publishable_qKySsEV_lMyn-utS3nHoeA_Dmvs5O3P
+        run: |
+          codigo=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            "$SUPABASE_URL/rest/v1/clientes?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY")
+          echo "Supabase respondio: $codigo"
+          if [ "$codigo" != "200" ]; then
+            echo "El proyecto no respondio correctamente. Puede estar pausado."
+            exit 1
+          fi
+          echo "Proyecto activo."
