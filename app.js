@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -110,6 +110,11 @@ function clientName(id) {
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
 const LS_KEY = 'visitasvoz.groqkey';
 
+// Groq retiró los modelos Llama en 2026. Si algún día falla con
+// "model_not_found", consultar /v1/models y poner aquí uno vigente.
+const MODELO_TEXTO = 'openai/gpt-oss-120b';
+const MODELO_AUDIO = 'whisper-large-v3-turbo';
+
 // Modo literal: transcribir y nada más, sin que la IA reescriba ni deduzca.
 const LS_SOLO_TRANS = 'visitasvoz.soloTranscripcion';
 function soloTranscripcion() {
@@ -160,7 +165,7 @@ async function transcribeAudio(blob) {
   const key = requireKey();
   const form = new FormData();
   form.append('file', blob, `audio.${extFor(blob.type)}`);
-  form.append('model', 'whisper-large-v3-turbo');
+  form.append('model', MODELO_AUDIO);
   form.append('language', 'es');
   form.append('response_format', 'json');
 
@@ -221,7 +226,7 @@ async function structureSummary(transcript, hoy) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: MODELO_TEXTO,
       temperature: 0.2,
       response_format: { type: 'json_object' },
       messages: [
@@ -280,7 +285,7 @@ async function askAboutData(historial) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: MODELO_TEXTO,
       temperature: 0.2,
       messages: [{ role: 'system', content: system }, ...historial],
     }),
