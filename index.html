@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.json">
   <!-- El ?v= cambia en cada version: obliga al navegador a bajar el archivo
        nuevo en vez de servir su copia guardada. Subirlo junto a APP_VERSION. -->
-  <link rel="stylesheet" href="styles.css?v=14">
+  <link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body>
 
@@ -120,6 +120,15 @@
       <button class="primary" id="key-save">Guardar clave</button>
       <p class="key-state" id="key-state"></p>
       <button class="link-red" id="key-clear" hidden>Borrar clave de este móvil</button>
+    </div>
+
+    <div class="section">
+      <h3>Qué hace la IA con tus notas</h3>
+      <label class="check">
+        <input type="checkbox" id="solo-transcripcion">
+        Guardar solo la transcripción literal
+      </label>
+      <p class="help" id="solo-transcripcion-ayuda"></p>
     </div>
 
     <div class="section">
@@ -234,8 +243,8 @@
   </div>
 </div>
 
-<script src="supabase-config.js?v=14"></script>
-<script src="nube.js?v=14"></script>
-<script src="app.js?v=14"></script>
+<script src="supabase-config.js?v=15"></script>
+<script src="nube.js?v=15"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>

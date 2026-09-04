@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 14;
+const APP_VERSION = 15;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -110,6 +110,12 @@ function clientName(id) {
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
 const LS_KEY = 'visitasvoz.groqkey';
 
+// Modo literal: transcribir y nada más, sin que la IA reescriba ni deduzca.
+const LS_SOLO_TRANS = 'visitasvoz.soloTranscripcion';
+function soloTranscripcion() {
+  return localStorage.getItem(LS_SOLO_TRANS) === '1';
+}
+
 // La clave NO está en el código: vive solo en este dispositivo.
 function getKey() {
   return (localStorage.getItem(LS_KEY) || '').trim();
@@ -205,6 +211,9 @@ function buildContext() {
     if (v.puntosClave?.length) parts.push(`Puntos clave: ${v.puntosClave.join('; ')}`);
     if (v.proximosPasos?.length) parts.push(`Próximos pasos: ${v.proximosPasos.join('; ')}`);
     if (v.fechaSeguimiento) parts.push(`Fecha de seguimiento: ${v.fechaSeguimiento}`);
+    // Sin resumen (modo literal) la IA se quedaría sin nada que consultar:
+    // se le pasa lo que dijo el comercial, palabra por palabra.
+    if (!v.resumen && v.transcripcion) parts.push(`Nota literal: ${v.transcripcion}`);
     lines.push(parts.join(' | '));
   });
   return lines.join('\n');
@@ -320,6 +329,16 @@ async function procesarVisita(id) {
     const blob = await DB.get(id);
     if (!blob) throw new Error('No se encontró el audio guardado.');
     const transcripcion = await transcribeAudio(blob);
+
+    // Modo literal: se guarda tal cual y no se llama al modelo de resumen
+    if (soloTranscripcion()) {
+      updateVisit(id, {
+        transcripcion, estado: 'listo',
+        resumen: '', puntosClave: [], proximosPasos: [], fechaSeguimiento: null,
+      });
+      return;
+    }
+
     const hoy = new Date().toISOString().slice(0, 10);
     const est = await structureSummary(transcripcion, hoy);
     updateVisit(id, { transcripcion, ...est, estado: 'listo' });
@@ -493,8 +512,8 @@ function render() {
     ? recientes.map((v) => visitRow(
         v,
         clientName(v.clientId),
-        v.estado === 'listo' && v.resumen
-          ? v.resumen
+        v.estado === 'listo' && (v.resumen || v.transcripcion)
+          ? (v.resumen || v.transcripcion)
           : `${fmtDate(v.fecha)} · ${fmtMillis(v.duracion)}`
       )).join('')
     : '<p class="empty">Aún no hay visitas guardadas</p>';
@@ -529,7 +548,9 @@ function render() {
       $('cliente-visitas').innerHTML = vs.length
         ? vs.map((v) => visitRow(
             v, fmtDate(v.fecha),
-            v.estado === 'listo' && v.resumen ? v.resumen : `Duración ${fmtMillis(v.duracion)}`
+            v.estado === 'listo' && (v.resumen || v.transcripcion)
+              ? (v.resumen || v.transcripcion)
+              : `Duración ${fmtMillis(v.duracion)}`
           )).join('')
         : '<p class="empty">Este cliente no tiene visitas todavía</p>';
     }
@@ -555,7 +576,9 @@ function renderVisitDetail() {
     </div>`;
 
   if (v.estado === 'procesando') {
-    html += `<div class="proc-box"><span class="sub">Transcribiendo y resumiendo con IA…</span></div>`;
+    html += `<div class="proc-box"><span class="sub">${
+      soloTranscripcion() ? 'Transcribiendo…' : 'Transcribiendo y resumiendo con IA…'
+    }</span></div>`;
   } else if (v.estado === 'error') {
     html += `
       <div class="err-box">
@@ -578,10 +601,18 @@ function renderVisitDetail() {
     if (v.fechaSeguimiento) {
       html += `<div class="section"><h3>Seguimiento</h3><p class="seguimiento">📅 ${esc(fmtDay(v.fechaSeguimiento))}</p></div>`;
     }
-    if (v.transcripcion) {
+    if (v.transcripcion && v.resumen) {
+      // Con resumen, lo literal va debajo y plegado
       html += `
         <button class="trans-toggle" id="trans-toggle">▸ Ver transcripción completa</button>
         <p class="trans-text" id="trans-text" hidden>${esc(v.transcripcion)}</p>`;
+    } else if (v.transcripcion) {
+      // Modo literal: es lo único que hay, así que va en primer plano y abierto
+      html += `
+        <div class="section">
+          <h3>Lo que dijiste</h3>
+          <p class="body-text literal">${esc(v.transcripcion)}</p>
+        </div>`;
     }
   }
 
@@ -634,6 +665,15 @@ function renderAjustes() {
     `guardados en este móvil.`;
   const vt = $('version-text');
   if (vt) vt.textContent = `Versión ${APP_VERSION}`;
+
+  const solo = $('solo-transcripcion');
+  if (solo) {
+    solo.checked = soloTranscripcion();
+    $('solo-transcripcion-ayuda').textContent = solo.checked
+      ? 'Se guarda palabra por palabra lo que dices, sin resumen ni puntos clave. Ojo: al no interpretar nada, tampoco detecta fechas de seguimiento, así que no aparecerán en Pendientes.'
+      : 'Además de la transcripción, la IA escribe un resumen, los puntos clave, los próximos pasos y detecta la fecha de seguimiento.';
+  }
+
   renderCuenta();
 }
 
@@ -930,6 +970,11 @@ $('cuenta-salir').onclick = () => {
 };
 
 // Ajustes
+$('solo-transcripcion').onchange = (e) => {
+  localStorage.setItem(LS_SOLO_TRANS, e.target.checked ? '1' : '0');
+  render();
+};
+
 $('no-key-bar').onclick = () => { tab = 'ajustes'; render(); };
 $('key-show').onchange = (e) => {
   $('key-input').type = e.target.checked ? 'text' : 'password';
