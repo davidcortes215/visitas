@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 18;
+const APP_VERSION = 19;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -129,7 +129,7 @@ function requireKey() {
   const k = getKey();
   if (!k) {
     throw new Error(
-      'Para transcribir hace falta la IA. Entra con tu cuenta en Ajustes y se activa sola.'
+      'Para procesar la nota hace falta la IA. Entra con tu cuenta en Ajustes y se activa sola.'
     );
   }
   return k;
@@ -672,7 +672,7 @@ function renderVisitDetail() {
       // Modo literal: es lo único que hay, así que va en primer plano y abierto
       html += `
         <div class="section">
-          <h3>Lo que dijiste</h3>
+          <h3>${v.duracion ? 'Lo que dijiste' : 'Lo que escribiste'}</h3>
           <p class="body-text literal">${esc(v.transcripcion)}</p>
         </div>`;
     }
