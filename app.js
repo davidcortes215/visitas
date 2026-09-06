@@ -5,7 +5,7 @@
 // Sube este número en cada cambio: sirve para saber qué versión tiene el móvil.
 // OJO: al subir este número hay que subir también el ?v= de index.html
 // (styles.css y app.js) y el CACHE de sw.js.
-const APP_VERSION = 17;
+const APP_VERSION = 18;
 
 // ---------------- Utilidades ----------------
 const $ = (id) => document.getElementById(id);
@@ -375,9 +375,17 @@ async function playVisit(id) {
 async function procesarVisita(id) {
   updateVisit(id, { estado: 'procesando', errorMsg: '' });
   try {
-    const blob = await DB.get(id);
-    if (!blob) throw new Error('No se encontró el audio guardado.');
-    const transcripcion = await transcribeAudio(blob);
+    // Una visita escrita a mano ya trae su texto: no hay audio que transcribir.
+    // Se reconocen por no tener duración.
+    const v = visits.find((x) => x.id === id);
+    let transcripcion;
+    if (v && !v.duracion && v.transcripcion) {
+      transcripcion = v.transcripcion;
+    } else {
+      const blob = await DB.get(id);
+      if (!blob) throw new Error('No se encontró el audio guardado.');
+      transcripcion = await transcribeAudio(blob);
+    }
 
     // Modo literal: se guarda tal cual y no se llama al modelo de resumen
     if (soloTranscripcion()) {
@@ -450,7 +458,9 @@ async function sincronizar(mostrarErrores) {
 
 // ---------------- Modal asignar ----------------
 function openAssign() {
-  $('assign-sub').textContent = `Grabación de ${fmtMillis(pending.duracion)}`;
+  $('assign-sub').textContent = pending.duracion
+    ? `Grabación de ${fmtMillis(pending.duracion)}`
+    : 'Nota escrita a mano';
   $('assign-search').value = '';
   $('new-nombre').value = '';
   $('new-empresa').value = '';
@@ -486,7 +496,7 @@ function asignarVisita(clientId) {
     fecha: pending.fecha,
     duracion: pending.duracion,
     estado: 'procesando',
-    transcripcion: '', resumen: '',
+    transcripcion: pending.texto || '', resumen: '',
     puntosClave: [], proximosPasos: [],
     fechaSeguimiento: null, errorMsg: '',
     actualizadoEn: ahora(),
@@ -564,7 +574,7 @@ function render() {
         clientName(v.clientId),
         v.estado === 'listo' && (v.resumen || v.transcripcion)
           ? (v.resumen || v.transcripcion)
-          : `${fmtDate(v.fecha)} · ${fmtMillis(v.duracion)}`
+          : `${fmtDate(v.fecha)}${v.duracion ? ' · ' + fmtMillis(v.duracion) : ''}`
       )).join('')
     : '<p class="empty">Aún no hay visitas guardadas</p>';
 
@@ -619,11 +629,13 @@ function renderVisitDetail() {
   $('visita-cliente').textContent = clientName(v.clientId);
   $('visita-fecha').textContent = fmtDate(v.fecha);
 
-  let html = `
-    <div class="play-bar" data-play="${esc(v.id)}">
-      <div class="play-circle">▶</div>
-      <div>Escuchar audio · ${fmtMillis(v.duracion)}</div>
-    </div>`;
+  // Las visitas escritas a mano no tienen audio que escuchar
+  let html = v.duracion
+    ? `<div class="play-bar" data-play="${esc(v.id)}">
+        <div class="play-circle">▶</div>
+        <div>Escuchar audio · ${fmtMillis(v.duracion)}</div>
+      </div>`
+    : '<p class="sub" style="margin-top:14px">Visita escrita a mano</p>';
 
   if (v.estado === 'procesando') {
     html += `<div class="proc-box"><span class="sub">${
@@ -964,6 +976,52 @@ $('assign-create-btn').onclick = () => {
   asignarVisita(nuevo.id);
 };
 $('assign-discard').onclick = descartarPending;
+
+// ---------------- Añadir cliente sin visita ----------------
+$('cliente-nuevo-btn').onclick = () => {
+  $('nuevo-cliente-nombre').value = '';
+  $('nuevo-cliente-empresa').value = '';
+  $('nuevo-cliente-guardar').disabled = true;
+  $('cliente-overlay').hidden = false;
+  $('nuevo-cliente-nombre').focus();
+};
+$('nuevo-cliente-nombre').oninput = () => {
+  $('nuevo-cliente-guardar').disabled = !$('nuevo-cliente-nombre').value.trim();
+};
+$('nuevo-cliente-cancelar').onclick = () => { $('cliente-overlay').hidden = true; };
+$('nuevo-cliente-guardar').onclick = () => {
+  const nombre = $('nuevo-cliente-nombre').value.trim();
+  if (!nombre) return;
+  clients = [{
+    id: 'c' + Date.now(), nombre,
+    empresa: $('nuevo-cliente-empresa').value.trim(),
+    actualizadoEn: ahora(),
+  }, ...clients];
+  persistClients();
+  $('cliente-overlay').hidden = true;
+  render();
+  sincronizarSuave();
+};
+
+// ---------------- Escribir la visita en vez de dictarla ----------------
+$('escribir-btn').onclick = () => {
+  $('escribir-texto').value = '';
+  $('escribir-continuar').disabled = true;
+  $('escribir-overlay').hidden = false;
+  $('escribir-texto').focus();
+};
+$('escribir-texto').oninput = () => {
+  $('escribir-continuar').disabled = !$('escribir-texto').value.trim();
+};
+$('escribir-cancelar').onclick = () => { $('escribir-overlay').hidden = true; };
+$('escribir-continuar').onclick = () => {
+  const texto = $('escribir-texto').value.trim();
+  if (!texto) return;
+  $('escribir-overlay').hidden = true;
+  // Sin duración: así se sabe que no hay audio y no hay que transcribir
+  pending = { id: String(Date.now()), duracion: 0, fecha: ahora(), texto };
+  openAssign();
+};
 
 // ---------------- Cuenta ----------------
 $('no-cloud-bar').onclick = () => { tab = 'ajustes'; render(); };

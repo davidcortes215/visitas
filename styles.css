@@ -104,6 +104,22 @@ h2.list-title { font-size: 18px; margin: 22px 0 8px; font-weight: 600; }
 }
 .hint { color: var(--primary-ink); text-align: center; font-size: 14px; margin-top: 12px; }
 
+/* Acción alternativa: presente pero sin competir con el botón principal */
+.secundario {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; margin-top: 16px; padding: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  box-shadow: var(--shadow); border-radius: 12px;
+  color: var(--primary-ink); font-size: 15px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.secundario:active { background: var(--primary-wash); }
+.secundario svg {
+  width: 19px; height: 19px; flex-shrink: 0;
+  fill: none; stroke: currentColor;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+
 /* ---------- Listas ---------- */
 .list { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 12px; }
 
@@ -376,6 +392,15 @@ h3.grupo.urgente { color: var(--primary-ink); }
   width: 100%; height: 78%;
   padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
   display: flex; flex-direction: column;
+}
+/* Ventana corta: solo lo que ocupa su contenido */
+.sheet.corto { height: auto; }
+.sheet textarea {
+  width: 100%; margin-top: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px;
+  color: var(--text); font-size: 16px; font-family: inherit;
+  line-height: 1.45; resize: none; flex: 1; min-height: 140px;
 }
 .handle {
   width: 40px; height: 4px; border-radius: 2px;

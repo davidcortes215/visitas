@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.json">
   <!-- El ?v= cambia en cada version: obliga al navegador a bajar el archivo
        nuevo en vez de servir su copia guardada. Subirlo junto a APP_VERSION. -->
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body>
 
@@ -40,6 +40,14 @@
     </button>
     <p class="hint" id="record-hint">Toca el círculo</p>
 
+    <button class="secundario" id="escribir-btn">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="2.5" y="6" width="19" height="12" rx="2"></rect>
+        <path d="M6.5 9.5h.01M10 9.5h.01M13.5 9.5h.01M17 9.5h.01M8 14.5h8"></path>
+      </svg>
+      Escribir en vez de hablar
+    </button>
+
     <h2 class="list-title">Últimas visitas</h2>
     <div class="list" id="recent-list"></div>
   </section>
@@ -55,6 +63,14 @@
   <section class="screen" id="screen-clientes" hidden>
     <h1>Clientes</h1>
     <p class="sub" id="clientes-count">0 clientes</p>
+    <button class="secundario" id="cliente-nuevo-btn">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="9" cy="7.5" r="3.6"></circle>
+        <path d="M2.5 20v-1.2A4.3 4.3 0 0 1 6.8 14.5h4.4a4.3 4.3 0 0 1 4.3 4.3V20"></path>
+        <path d="M19 8v6M22 11h-6"></path>
+      </svg>
+      Añadir cliente
+    </button>
     <div class="list" id="clients-list"></div>
   </section>
 
@@ -214,6 +230,34 @@
   </nav>
 </div>
 
+<!-- ======================= MODAL: NUEVO CLIENTE ======================= -->
+<div class="overlay" id="cliente-overlay" hidden>
+  <div class="sheet corto">
+    <div class="handle"></div>
+    <h2>Nuevo cliente</h2>
+    <p class="sub">Se guarda aunque todavía no tengas ninguna visita suya</p>
+    <input id="nuevo-cliente-nombre" type="text" placeholder="Nombre del cliente"
+           autocomplete="off">
+    <input id="nuevo-cliente-empresa" type="text" placeholder="Empresa (opcional)"
+           autocomplete="off">
+    <button class="primary" id="nuevo-cliente-guardar" disabled>Guardar cliente</button>
+    <button class="discard" id="nuevo-cliente-cancelar">Cancelar</button>
+  </div>
+</div>
+
+<!-- ======================= MODAL: ESCRIBIR VISITA ======================= -->
+<div class="overlay" id="escribir-overlay" hidden>
+  <div class="sheet">
+    <div class="handle"></div>
+    <h2>Escribir la visita</h2>
+    <p class="sub">Cuéntalo como si lo dictaras: la IA lo ordena igual</p>
+    <textarea id="escribir-texto" rows="8"
+              placeholder="Visita con… Están interesados en… Quedamos en…"></textarea>
+    <button class="primary" id="escribir-continuar" disabled>Continuar</button>
+    <button class="discard" id="escribir-cancelar">Cancelar</button>
+  </div>
+</div>
+
 <!-- ======================= MODAL ASIGNAR ======================= -->
 <div class="overlay" id="assign-overlay" hidden>
   <div class="sheet">
@@ -240,8 +284,8 @@
   </div>
 </div>
 
-<script src="supabase-config.js?v=17"></script>
-<script src="nube.js?v=17"></script>
-<script src="app.js?v=17"></script>
+<script src="supabase-config.js?v=18"></script>
+<script src="nube.js?v=18"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>
