@@ -63,6 +63,33 @@ usuario ver sus propias filas.
   la barra de pestañas es del color del fondo: para fundirse con ella. No
   intentar bajarla más, ya se probó y la barra se sale de la pantalla.
 
+## Estado y siguientes pasos
+
+Funcionando y probado en producción: grabar, transcribir, resumir con IA,
+clientes, pestaña Pendientes, preguntar en lenguaje natural, cuenta con
+sincronización, modo literal (guardar solo la transcripción sin que la IA
+reescriba), añadir clientes sin visita y escribir la nota en vez de dictarla.
+
+Pendiente, por orden de lo que más urge:
+
+1. **Poder corregir.** Hoy, si la IA se equivoca, lo único que se puede hacer es
+   borrar la visita. No se puede editar el nombre de un cliente, cambiar una
+   visita de cliente, ajustar una fecha de seguimiento, retocar un resumen ni
+   borrar un cliente. Whisper falla con nombres propios a menudo, así que esto
+   se nota desde la primera semana de uso. **Es lo siguiente acordado.**
+2. **Notificaciones que lleguen sin abrir la app.** Era el encargo original.
+   Pendientes ya reúne los seguimientos, pero exige acordarse de mirar. En iOS
+   solo llegan con la app cerrada si las envía un servidor: haría falta claves
+   VAPID, una función de Supabase y una tarea diaria que mire qué vence.
+3. **Buscador global.** Con 10 clientes la lista va bien; con 80 no.
+4. **Exportar los datos.** Hoy están atrapados en la app.
+5. **Mensaje de bienvenida** la primera vez, que ahora se abre en vacío.
+6. **Probar una nota larga.** Solo se han probado notas de 20-40 segundos; no
+   se sabe si Groq acepta una de 10 minutos.
+
+Aviso de negocio: todas las transcripciones salen de la cuota gratuita de Groq
+de David. Sirve para una comercial; no aguanta venderlo a varios clientes.
+
 ## Cómo probar
 
 No hay tests automáticos. Lo que funciona es publicar y verificar contra la URL
