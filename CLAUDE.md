@@ -47,8 +47,14 @@ usuario ver sus propias filas.
   los móviles. Así la comercial no tiene que configurar nada.
 - **Los audios no suben a la nube**: se quedan en el móvil (IndexedDB). Arriba
   van clientes, fichas, transcripciones y seguimientos.
-- **El plan gratuito pausa el proyecto** tras unos días sin actividad. Lo evita
-  la tarea `.github/workflows/mantener-despierto.yml`, que consulta a diario.
+- **El plan gratuito pausa el proyecto** tras 7 días sin "actividad suficiente".
+  Lo evita la tarea `.github/workflows/mantener-despierto.yml`: cada día inicia
+  sesión con la cuenta técnica `latido.visitas@example.com` y actualiza una
+  fila propia (id `latido-automatico`, aislada por RLS). Su contraseña está en
+  el secreto `KEEPALIVE_PASSWORD` del repo. **Ojo:** una primera versión que
+  solo hacía una lectura anónima diaria corrió bien 12 días y aun así Supabase
+  avisó de que iba a pausar: leer sin sesión no le cuenta. Si llega otro aviso
+  pese a esto, la única salida que queda es el plan Pro.
 
 ## Cosas que ya han mordido
 
