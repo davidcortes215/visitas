@@ -1,11 +1,16 @@
 # Mantiene despierto el proyecto de Supabase.
 #
-# El plan gratuito suspende los proyectos tras unos dias sin actividad, y eso
-# dejaria a la app sin sincronizacion y sin IA. Una consulta diaria basta para
-# que Supabase lo considere activo.
+# El plan gratuito pausa los proyectos que no tienen "actividad suficiente"
+# durante 7 dias. Una primera version solo hacia una lectura anonima al dia:
+# se ejecuto bien 12 dias seguidos y aun asi Supabase aviso de que iba a
+# pausarlo. Leer sin sesion no le cuenta.
 #
-# La URL y la clave que aparecen aqui son publicas a proposito (ya viajan
-# dentro de la app): lo que protege los datos son las reglas RLS de la base.
+# Ahora cada dia inicia sesion con una cuenta tecnica y ESCRIBE en la base de
+# datos, que es actividad inequivoca. La fila vive aislada por las reglas RLS:
+# no la ve ningun usuario real de la app.
+#
+# La contrasena de esa cuenta esta en el secreto KEEPALIVE_PASSWORD del repo.
+# La URL y la clave publicable son publicas a proposito (ya viajan en la app).
 
 name: Mantener Supabase despierto
 
@@ -17,20 +22,45 @@ on:
   workflow_dispatch:
 
 jobs:
-  ping:
+  latido:
     runs-on: ubuntu-latest
     steps:
-      - name: Consultar la base de datos
+      - name: Iniciar sesion y escribir en la base de datos
         env:
           SUPABASE_URL: https://ufhtcbfrjbjsbzzkbypb.supabase.co
           SUPABASE_KEY: sb_publishable_qKySsEV_lMyn-utS3nHoeA_Dmvs5O3P
+          LATIDO_EMAIL: latido.visitas@example.com
+          LATIDO_PASSWORD: ${{ secrets.KEEPALIVE_PASSWORD }}
         run: |
-          codigo=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
-            "$SUPABASE_URL/rest/v1/clientes?select=id&limit=1" \
-            -H "apikey: $SUPABASE_KEY")
-          echo "Supabase respondio: $codigo"
-          if [ "$codigo" != "200" ]; then
-            echo "El proyecto no respondio correctamente. Puede estar pausado."
+          set -e
+
+          # 1) Iniciar sesion: actividad de autenticacion
+          sesion=$(curl -s --max-time 30 -X POST \
+            "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+            -H "apikey: $SUPABASE_KEY" -H "Content-Type: application/json" \
+            -d "$(jq -n --arg e "$LATIDO_EMAIL" --arg p "$LATIDO_PASSWORD" '{email:$e,password:$p}')")
+          token=$(echo "$sesion" | jq -r '.access_token // empty')
+          uid=$(echo "$sesion" | jq -r '.user.id // empty')
+          if [ -z "$token" ] || [ -z "$uid" ]; then
+            echo "No se pudo iniciar sesion. Puede que el proyecto ya este pausado."
+            echo "$sesion" | head -c 300
             exit 1
           fi
-          echo "Proyecto activo."
+          echo "Sesion iniciada."
+
+          # 2) Escribir: actualiza la misma fila cada dia (no acumula basura)
+          ahora=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          cuerpo=$(jq -n --arg u "$uid" --arg t "$ahora" \
+            '[{id:"latido-automatico", user_id:$u, nombre:"Latido automatico", empresa:"", actualizado_en:$t}]')
+          codigo=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST \
+            "$SUPABASE_URL/rest/v1/clientes" \
+            -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $token" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: resolution=merge-duplicates,return=minimal" \
+            -d "$cuerpo")
+          echo "Escritura: HTTP $codigo"
+          if [ "$codigo" != "201" ] && [ "$codigo" != "200" ] && [ "$codigo" != "204" ]; then
+            echo "La escritura no se completo."
+            exit 1
+          fi
+          echo "Proyecto activo. Latido registrado a las $ahora."
